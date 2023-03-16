@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.NotImplementedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for parsing an OpenSearch NDJSON search request into a list of appropriate
@@ -26,6 +28,7 @@ import org.apache.commons.lang3.NotImplementedException;
  * building a complete working list of queries to be performed.
  */
 public class OpenSearchRequest {
+  private static final Logger LOG = LoggerFactory.getLogger(OpenSearchRequest.class);
   private static final ObjectMapper OM =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -42,16 +45,19 @@ public class OpenSearchRequest {
     for (List<String> pair : Lists.partition(Arrays.asList(postBody.split("\n")), 2)) {
       JsonNode header = OM.readTree(pair.get(0));
       JsonNode body = OM.readTree(pair.get(1));
-
-      searchRequests.add(
-          KaldbSearch.SearchRequest.newBuilder()
-              .setDataset(getDataset(header))
-              .setQueryString(getQueryString(body))
-              .setHowMany(getHowMany(body))
-              .setStartTimeEpochMs(getStartTimeEpochMs(body))
-              .setEndTimeEpochMs(getEndTimeEpochMs(body))
-              .setAggregations(getAggregations(body))
-              .build());
+      LOG.info("JSON header for search request:" + header.toPrettyString());
+      LOG.info("JSON body for search request: " + body.toPrettyString());
+      KaldbSearch.SearchRequest.SearchAggregation agg = getAggregations(body);
+      KaldbSearch.SearchRequest.Builder builder = KaldbSearch.SearchRequest.newBuilder();
+      builder.setDataset(getDataset(header));
+      builder.setQueryString(getQueryString(body));
+      builder.setHowMany(getHowMany(body));
+      builder.setStartTimeEpochMs(getStartTimeEpochMs(body));
+      builder.setEndTimeEpochMs(getEndTimeEpochMs(body));
+      if (agg != null) {
+        builder.setAggregations(agg);
+      }
+      searchRequests.add(builder.build());
     }
     return searchRequests;
   }
@@ -75,19 +81,59 @@ public class OpenSearchRequest {
   }
 
   private static int getHowMany(JsonNode body) {
-    return body.get("size").asInt();
+    try {
+      return body.get("size").asInt();
+    } catch (Exception e) {
+      return Integer.MAX_VALUE;
+    }
   }
 
   private static long getStartTimeEpochMs(JsonNode body) {
-    return body.get("query").findValue("gte").asLong();
+    // TODO: support gt and eq
+    try {
+      return body.get("query").findValue("gte").asLong();
+    } catch (Exception e) {
+      // ElasticSearch versions pre-8.0 output the deprecated "from/to" version of a range search
+      // when using RangeQueryBuilder
+      try {
+        return body.get("query").findValue("from").asLong();
+      } catch (Exception e2) {
+        LOG.error(
+            String.format(
+                "Error parsing the start time epoch timestamp. JSON was '%s'",
+                body.toPrettyString()),
+            e2);
+        throw e2;
+      }
+    }
   }
 
   private static long getEndTimeEpochMs(JsonNode body) {
-    return body.get("query").findValue("lte").asLong();
+    // TODO: support lt and eq
+    try {
+      return body.get("query").findValue("lte").asLong();
+    } catch (Exception e) {
+      // ElasticSearch versions pre-8.0 output the deprecated "from/to" version of a range search
+      // when using RangeQueryBuilder
+      try {
+        return body.get("query").findValue("to").asLong();
+      } catch (Exception e2) {
+        LOG.error(
+            String.format(
+                "Error parsing the end time epoch timestamp. JSON was '%s'", body.toPrettyString()),
+            e2);
+        throw e2;
+      }
+    }
   }
 
   private static KaldbSearch.SearchRequest.SearchAggregation getAggregations(JsonNode body) {
-    if (Iterators.size(body.get("aggs").fieldNames()) != 1) {
+
+    JsonNode aggNode = body.get("aggs");
+    if (aggNode == null) {
+      return null;
+    }
+    if (Iterators.size(aggNode.fieldNames()) != 1) {
       throw new NotImplementedException(
           "Only exactly one top level aggregators is currently supported");
     }

@@ -28,7 +28,7 @@ services:
       - zookeeper
 
   grafana:
-    image: 'grafana/grafana:8.0.3'
+    image: 'grafana/grafana:8.5.3'
     container_name: kaldb_grafana
     ports:
       - '3000:3000'
@@ -51,6 +51,7 @@ services:
       - 9090:9090
     environment:
       - initialBuckets=test-s3-bucket
+      - root=/tmp/s3mock
 
   openzipkin:
     image: 'openzipkin/zipkin-slim'
@@ -58,12 +59,23 @@ services:
     ports:
       - 9411:9411
 
+  trino:
+    image: 'trino:408-SNAPSHOT-amd64'
+    container_name: trino_trino
+    profiles:
+      - trino
+    ports:
+      - 8090:8080
+    depends_on:
+      - kaldb
+
   #to build this image run 'docker build -t slackhq/kaldb .'
   kaldb:
     image: 'slackhq/kaldb'
     container_name: kaldb_kaldb
     profiles:
       - kaldb
+      - trino
     ports:
       - 8080:8080
       - 8081:8081
@@ -74,6 +86,8 @@ services:
     environment:
       - KALDB_ZK_CONNECTION_STRING=zookeeper:2181
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - S3_ENDPOINT=s3mock:9090
+      - ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
       - zookeeper
       - kafka

@@ -190,6 +190,7 @@ public class OpenSearchAggregationAdapter {
         }
       } catch (Exception e) {
         LOG.error("Error parsing schema mapping for {}", entry.getValue().toString(), e);
+        LOG.error("Full chunk schema is: " + chunkSchema);
       }
     }
 

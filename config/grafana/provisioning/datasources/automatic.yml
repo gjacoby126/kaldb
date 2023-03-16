@@ -8,7 +8,7 @@ datasources:
   - name: KalDB Trace
     type: zipkin
     access: proxy
-    url: "host.docker.internal:8081"
+    url: "host.docker.internal:9411"
     basicAuth: false
     basicAuthUser:
     basicAuthPassword:
@@ -20,7 +20,7 @@ datasources:
     url: "host.docker.internal:8081"
     password:
     user:
-    database: testindex
+    database: test
     basicAuth: false
     basicAuthUser:
     basicAuthPassword:
@@ -36,10 +36,10 @@ datasources:
   - name: KalDB Index
     type: elasticsearch
     access: proxy
-    url: "host.docker.internal:8080"
+    url: "localhost:8081"
     password:
     user:
-    database: testindex
+    database: test
     basicAuth: false
     basicAuthUser:
     basicAuthPassword:
