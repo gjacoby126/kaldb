@@ -45,8 +45,8 @@ public class OpenSearchRequest {
     for (List<String> pair : Lists.partition(Arrays.asList(postBody.split("\n")), 2)) {
       JsonNode header = OM.readTree(pair.get(0));
       JsonNode body = OM.readTree(pair.get(1));
-      LOG.info("JSON header for search request:" + header.toPrettyString());
-      LOG.info("JSON body for search request: " + body.toPrettyString());
+      LOG.info("JSON header for search request:" + header.toString());
+      LOG.info("JSON body for search request: " + body.toString());
       KaldbSearch.SearchRequest.SearchAggregation agg = getAggregations(body);
       KaldbSearch.SearchRequest.Builder builder = KaldbSearch.SearchRequest.newBuilder();
       builder.setDataset(getDataset(header));
@@ -57,13 +57,17 @@ public class OpenSearchRequest {
       if (agg != null) {
         builder.setAggregations(agg);
       }
-      searchRequests.add(builder.build());
+      KaldbSearch.SearchRequest request = builder.build();
+      LOG.info("KaldbSearch.SearchRequest: " + request.toString());
+      searchRequests.add(request);
     }
     return searchRequests;
   }
 
   private static String getDataset(JsonNode header) {
-    return header.get("index").asText();
+    //LOG.info(header.get("index").toString());
+    //return header.get("index").textValue();
+    return "test";
   }
 
   private static String getQueryString(JsonNode body) {

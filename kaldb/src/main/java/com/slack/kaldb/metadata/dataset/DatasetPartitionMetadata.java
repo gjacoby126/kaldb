@@ -8,6 +8,8 @@ import com.slack.kaldb.proto.metadata.Metadata;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Metadata for a specific partition configuration at a point in time. For partitions that are
@@ -20,6 +22,7 @@ public class DatasetPartitionMetadata {
   public final ImmutableList<String> partitions;
 
   public static final String MATCH_ALL_DATASET = "_all";
+  private static final Logger LOG = LoggerFactory.getLogger(DatasetPartitionMetadata.class);
 
   public DatasetPartitionMetadata(
       long startTimeEpochMs, long endTimeEpochMs, List<String> partitions) {
@@ -100,10 +103,15 @@ public class DatasetPartitionMetadata {
       long endTimeEpochMs,
       String dataset) {
     boolean skipDatasetFilter = (dataset.equals("*") || dataset.equals(MATCH_ALL_DATASET));
+    LOG.info(
+        String.format(
+            "Seeing if any partitions matches [%d-%d], dataset %s",
+            startTimeEpochMs, endTimeEpochMs, dataset));
+    LOG.info("Possibilities are " + datasetMetadataStore.getCached());
     return datasetMetadataStore
         .getCached()
         .stream()
-        .filter(serviceMetadata -> skipDatasetFilter || serviceMetadata.name.equals(dataset))
+            //.filter(serviceMetadata -> skipDatasetFilter || serviceMetadata.name.equals(dataset))
         .flatMap(
             serviceMetadata -> serviceMetadata.partitionConfigs.stream()) // will always return one
         .filter(

@@ -44,14 +44,16 @@ services:
       GF_PATHS_PLUGINS: "/var/lib/grafana/plugins"
       GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "slack-kaldb-app,slack-kaldb-app-backend-datasource"
 
-  s3:
-    image: 'adobe/s3mock:2.1.29'
+  mock-s3:
+    image: 'adobe/s3mock:2.11.0'
     container_name: kaldb_s3
     ports:
       - 9090:9090
+      - 9191:9191
     environment:
       - initialBuckets=test-s3-bucket
       - root=/tmp/s3mock
+      - debug=true
 
   openzipkin:
     image: 'openzipkin/zipkin-slim'
@@ -86,10 +88,10 @@ services:
     environment:
       - KALDB_ZK_CONNECTION_STRING=zookeeper:2181
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - S3_ENDPOINT=s3mock:9090
-      - ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - S3_ENDPOINT=http://mock-s3:9090
+      - ZIPKIN_TRACING_ENDPOINT=http://openzipkin:9411/api/v2/spans
     depends_on:
       - zookeeper
       - kafka
-      - s3
+      - mock-s3
       - openzipkin

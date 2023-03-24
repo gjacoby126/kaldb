@@ -241,6 +241,7 @@ public class KaldbDistributedQueryService extends KaldbQueryServiceBase {
     List<DatasetPartitionMetadata> partitions =
         DatasetPartitionMetadata.findPartitionsToQuery(
             datasetMetadataStore, queryStartTimeEpochMs, queryEndTimeEpochMs, dataset);
+    findPartitionsToQuerySpan.tag("partitionsFoundCount", Integer.toString(partitions.size()));
     findPartitionsToQuerySpan.finish();
 
     // find all snapshots that match time window and partition
@@ -257,6 +258,7 @@ public class KaldbDistributedQueryService extends KaldbQueryServiceBase {
         snapshotsToSearch.put(snapshotMetadata.name, snapshotMetadata);
       }
     }
+    snapshotsToSearchSpan.tag("snapshotsToSearchCount", Integer.toString(snapshotsToSearch.size()));
     snapshotsToSearchSpan.finish();
     return snapshotsToSearch;
   }

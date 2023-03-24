@@ -204,12 +204,17 @@ public class LogIndexSearcherImpl implements LogIndexSearcher<LogMessage> {
         LongPoint.newRangeQuery(
             SystemField.TIME_SINCE_EPOCH.fieldName, startTimeMsEpoch, endTimeMsEpoch),
         Occur.MUST);
+    LOG.info(
+        String.format(
+            "Adding range filter on TIME_SINCE_EPOCH of [%d-%d]",
+            startTimeMsEpoch, endTimeMsEpoch));
     if (queryStr.length() > 0) {
       queryBuilder.add(buildQueryParser().parse(queryStr), Occur.MUST);
     }
     BooleanQuery query = queryBuilder.build();
     span.tag("lucene_query", query.toString());
     span.tag("lucene_query_num_clauses", Integer.toString(query.clauses().size()));
+    LOG.info("Complete query: " + query.toString());
     return query;
   }
 
